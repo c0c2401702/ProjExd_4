@@ -47,7 +47,7 @@ class Bird(pg.sprite.Sprite):
         pg.K_LEFT: (-1, 0),
         pg.K_RIGHT: (+1, 0),
     }
-
+   
     def __init__(self, num: int, xy: tuple[int, int]):
         """
         こうかとん画像Surfaceを生成する
@@ -71,8 +71,7 @@ class Bird(pg.sprite.Sprite):
         self.image = self.imgs[self.dire]
         self.rect = self.image.get_rect()
         self.rect.center = xy
-        self.speed = 10
-
+        self.speed = 10  # 通常速度
     def change_img(self, num: int, screen: pg.Surface):
         """
         こうかとん画像を切り替え，画面に転送する
@@ -93,9 +92,12 @@ class Bird(pg.sprite.Sprite):
             if key_lst[k]:
                 sum_mv[0] += mv[0]
                 sum_mv[1] += mv[1]
-        self.rect.move_ip(self.speed*sum_mv[0], self.speed*sum_mv[1])
-        if check_bound(self.rect) != (True, True):
-            self.rect.move_ip(-self.speed*sum_mv[0], -self.speed*sum_mv[1])
+            self_speed = self.speed        
+        if key_lst[pg.K_LSHIFT] and not  (sum_mv[0] == 0 and sum_mv[1] == 0):
+            self_speed = 20  # 一時的に速く移動
+        self.rect.move_ip(self_speed*sum_mv[0], self_speed*sum_mv[1])
+        if check_bound(self.rect) != (True, True): 
+            self.rect.move_ip(self_speed*sum_mv[0], self_speed*sum_mv[1])
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
