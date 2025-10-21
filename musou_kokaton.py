@@ -242,6 +242,32 @@ class Score:
         screen.blit(self.image, self.rect)
 
 
+class sheild(pg.sprite.Sprite):
+    """
+    防御壁に関するクラス
+    """
+    def __init__(self,bird:Bird,life:int):
+        """
+        sheildを生成する
+        """
+        super().__init__()
+        self.image = pg.Surface((10,bird.rect.height*2))
+        self.image.fill((0,0,255))
+        vx,vy = bird.dire
+        angle = math.degrees(math.atan2(-vy,vx))
+        self.image = pg.transform.rotozoom(self.image, angle, 1.0)
+        self.image.set_colorkey((0,0,0))
+        self.rect = self.image.get_rect()
+        self.rect.centery = bird.rect.centery+bird.rect.height*vy-bird.rect.height/2
+        self.rect.centerx = bird.rect.centerx+bird.rect.width*vx-bird.rect.width/2
+        self.life = life
+
+    def update(self):
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
+
+
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -253,6 +279,7 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    shields = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -263,6 +290,9 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+            if event.type == pg.KEYDOWN and event.key == pg.K_s and score.value >= 50 and not shields:
+                score.value -= 50
+                shields.add(sheild(bird,400))
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -287,8 +317,11 @@ def main():
             score.update(screen)
             pg.display.update()
             time.sleep(2)
-            return
-
+            return    
+        
+        for bomb in pg.sprite.groupcollide(bombs,shields,True,False).keys():
+            exps.add(Explosion(bomb,50))
+            
         bird.update(key_lst, screen)
         beams.update()
         beams.draw(screen)
@@ -299,6 +332,8 @@ def main():
         exps.update()
         exps.draw(screen)
         score.update(screen)
+        shields.draw(screen)
+        shields.update()
         pg.display.update()
         tmr += 1
         clock.tick(50)
