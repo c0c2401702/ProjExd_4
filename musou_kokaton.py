@@ -128,6 +128,7 @@ class Bomb(pg.sprite.Sprite):
         self.rect.centerx = emy.rect.centerx
         self.rect.centery = emy.rect.centery+emy.rect.height//2
         self.speed = 6
+        self.state = "active"
 
     def update(self):
         """
@@ -264,6 +265,19 @@ class Gravity(pg.sprite.Sprite):
         self.life-=1
         if self.life < 0:
             self.kill()
+class EMP(pg.sprite.Sprite):
+    """
+    発動時に存在する敵機と爆弾を無効化するクラス
+    爆弾：スピードを半減させ、当たり判定を無効化する
+    敵機：無効化し、ラプラシアンフィルタを掛ける
+    """
+    def __init__(self, emys, bombs, screen):
+        for emy in emys:
+            emy.interval = math.inf
+            emy.image = pg.transform.laplacian(emy.image)
+        for bom in bombs:
+            bom.speed = bom.speed / 2
+            bom.state = "inactive"
 
 
 def main():
@@ -291,6 +305,9 @@ def main():
             if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.value>=20: #Enterキーかつ得点が20点以上
                 score.value-=20 #スコアーマイナス20点
                 gravitys.add(Gravity(400)) #400フレーム
+            if event.type == pg.KEYDOWN and event.key == pg.K_e and score.value >= 20: # 「e」キー押下かつスコアが20以上の場合
+                EMP(emys, bombs, screen)
+                score.value -= 20
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -314,17 +331,19 @@ def main():
             exps.add(Explosion(emy, 100))  # 爆発エフェクト
             score.value += 10  # 10点アップ
             bird.change_img(6, screen)
+        for bomb in bombs:
+            if bomb.state == "active":
+                for bomb in pg.sprite.groupcollide(bombs,gravitys, True,False).keys():  # こうかとんと衝突した爆弾リスト（重力）
+                    exps.add(Explosion(bomb,50)) # 爆発エフェクト
+                    score.value+=1 # 1点アップ
 
-        for bomb in pg.sprite.groupcollide(bombs,gravitys, True,False).keys():  # こうかとんと衝突した爆弾リスト（重力）
-            exps.add(Explosion(bomb,50)) # 爆発エフェクト
-            score.value+=1 # 1点アップ
+                for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
+                    bird.change_img(8, screen)  # こうかとん悲しみエフェクト
+                    score.update(screen)
+                    pg.display.update()
+                    time.sleep(2)
+                    return
         
-        for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
-            bird.change_img(8, screen)  # こうかとん悲しみエフェクト
-            score.update(screen)
-            pg.display.update()
-            time.sleep(2)
-            return
 
         bird.update(key_lst, screen)
         beams.update()
@@ -338,6 +357,7 @@ def main():
         score.update(screen)
         gravitys.update()
         gravitys.draw(screen)
+
         pg.display.update()
         tmr += 1
         clock.tick(50)
