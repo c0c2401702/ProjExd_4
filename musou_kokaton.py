@@ -89,6 +89,7 @@ class Bird(pg.sprite.Sprite):
         押下キーに応じてこうかとんを移動させる
         引数1 key_lst：押下キーの真理値リスト
         引数2 screen：画面Surface
+        引数3 score：現在のスコア
         """
         sum_mv = [0, 0]
         for k, mv in __class__.delta.items():
@@ -101,15 +102,15 @@ class Bird(pg.sprite.Sprite):
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
-        if (key_lst[pg.K_RSHIFT] and score >= 100):
+        if (key_lst[pg.K_RSHIFT] and score >= 100):  # 無敵モード発動
             Bird.state = "hyper"
-            score -= 100
+            score -= 100 # 発動時にスコアを100点減算
             Bird.hyper_life = 500
         if Bird.state == "hyper":
             self.image = pg.transform.laplacian(self.image)
             Bird.hyper_life -= 1
         if Bird.hyper_life == 0:
-            Bird.state = "normal"
+            Bird.state = "normal" # 無敵モード解除
             pg.transform.rotozoom(pg.image.load("fig/3.png"), 0, 1.0)
         screen.blit(self.image, self.rect)
 
@@ -296,7 +297,7 @@ def main():
 
         for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
             if Bird.state == "hyper":
-                score.value += 1
+                score.value += 1 # 無敵モード時はスコア加算
                 break
             bird.change_img(8, screen)  # こうかとん悲しみエフェクト
             score.update(screen)
