@@ -105,7 +105,7 @@ class Bird(pg.sprite.Sprite):
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
-        if (key_lst[pg.K_RSHIFT] and score >= -100):  # 無敵モード発動
+        if (key_lst[pg.K_RSHIFT] and score >= 100):  # 無敵モード発動
             Bird.state = "hyper"
             score -= 100 # 発動時にスコアを100点減算
             Bird.hyper_life = 500
@@ -249,7 +249,7 @@ class Score:
     def __init__(self):
         self.font = pg.font.Font(None, 50)
         self.color = (0, 0, 255)
-        self.value = 0
+        self.value = 1000
         self.image = self.font.render(f"Score: {self.value}", 0, self.color)
         self.rect = self.image.get_rect()
         self.rect.center = 100, HEIGHT-50
@@ -344,13 +344,13 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
-            if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.value>=-200: #Enterキーかつ得点が20点以上
+            if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.value>=200: #Enterキーかつ得点が20点以上
                 score.value-=200 #スコアーマイナス200点
                 gravitys.add(Gravity(400)) #400フレーム
-            if event.type == pg.KEYDOWN and event.key == pg.K_e and score.value >= -20: # 「e」キー押下かつスコアが20以上の場合
+            if event.type == pg.KEYDOWN and event.key == pg.K_e and score.value >= 20: # 「e」キー押下かつスコアが20以上の場合
                 EMP(emys, bombs, screen)
                 score.value -= 20
-            if event.type == pg.KEYDOWN and event.key == pg.K_s and score.value >= -50 and not shields:
+            if event.type == pg.KEYDOWN and event.key == pg.K_s and score.value >= 50 and not shields:
                 score.value -= 50
                 shields.add(sheild(bird,400))
         screen.blit(bg_img, [0, 0])
@@ -377,28 +377,27 @@ def main():
             score.value += 10  # 10点アップ
             bird.change_img(6, screen)
         
-        for bomb in bombs:
+        
+        
+        for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
             if Bird.state == "hyper":
-                for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
-                    if Bird.state == "hyper":
-                        score.value += 1 # 無敵モード時はスコア加算
-                        break
-                    bird.change_img(8, screen)  # こうかとん悲しみエフェクト
-                    score.update(screen)
-                    pg.display.update()
-                    time.sleep(2)
-                    return
+                score.value += 1 # 無敵モード時はスコア加算
+                break
+            
             elif bomb.state == "active":
-                for bomb in pg.sprite.groupcollide(bombs,gravitys, True,False).keys():  # こうかとんと衝突した爆弾リスト（重力）
-                    exps.add(Explosion(bomb,50)) # 爆発エフェクト
-                    score.value+=1 # 1点アップ
+                bird.change_img(8, screen)  # こうかとん悲しみエフェクト
+                score.update(screen)
+                pg.display.update()
+                time.sleep(2)
+                return
+            
+            elif bomb.state == "inactive":
+                bomb.kill()
 
-                for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
-                    bird.change_img(8, screen)  # こうかとん悲しみエフェクト
-                    score.update(screen)
-                    pg.display.update()
-                    time.sleep(2)
-                    return
+        for bomb in pg.sprite.groupcollide(bombs,gravitys, True,False).keys():  # こうかとんと衝突した爆弾リスト（重力）
+            exps.add(Explosion(bomb,50)) # 爆発エフェクト
+            score.value+=1 # 1点アップ
+                                
             
 
         bird.update(key_lst, screen, score.value)
