@@ -101,9 +101,9 @@ class Bird(pg.sprite.Sprite):
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
-        if (key_lst[pg.K_RSHIFT] and score >= 0):
+        if (key_lst[pg.K_RSHIFT] and score >= 100):
             Bird.state = "hyper"
-            score -= 10
+            score -= 100
             Bird.hyper_life = 500
         if Bird.state == "hyper":
             self.image = pg.transform.laplacian(self.image)
