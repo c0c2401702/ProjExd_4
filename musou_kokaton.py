@@ -105,7 +105,7 @@ class Bird(pg.sprite.Sprite):
         if not (sum_mv[0] == 0 and sum_mv[1] == 0):
             self.dire = tuple(sum_mv)
             self.image = self.imgs[self.dire]
-        if (key_lst[pg.K_RSHIFT] and score >= 100):  # 無敵モード発動
+        if (key_lst[pg.K_RSHIFT] and score >= -100):  # 無敵モード発動
             Bird.state = "hyper"
             score -= 100 # 発動時にスコアを100点減算
             Bird.hyper_life = 500
@@ -292,6 +292,33 @@ class EMP(pg.sprite.Sprite):
         for bom in bombs:
             bom.speed = bom.speed / 2
             bom.state = "inactive"
+class sheild(pg.sprite.Sprite):
+    """
+    防御壁に関するクラス
+    """
+    def __init__(self,bird:Bird,life:int):
+        """
+        sheildを生成する
+        """
+        super().__init__()
+        self.image = pg.Surface((10,bird.rect.height*2))
+        self.image.fill((0,0,255))
+        vx,vy = bird.dire
+        angle = math.degrees(math.atan2(-vy,vx))
+        self.image = pg.transform.rotozoom(self.image, angle, 1.0)
+        self.image.set_colorkey((0,0,0))
+        self.rect = self.image.get_rect()
+        self.rect.centery = bird.rect.centery+bird.rect.height*vy-bird.rect.height/2
+        self.rect.centerx = bird.rect.centerx+bird.rect.width*vx-bird.rect.width/2
+        self.life = life
+
+    def update(self):
+        """
+        lifeを1ずつ減らし、0より小さくなったらkillする
+        """
+        self.life -= 1
+        if self.life < 0:
+            self.kill()
 
 
 def main():
@@ -306,6 +333,7 @@ def main():
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
     gravitys=pg.sprite.Group()
+    shields = pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -316,12 +344,15 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
-            if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.value>=200: #Enterキーかつ得点が20点以上
+            if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.value>=-200: #Enterキーかつ得点が20点以上
                 score.value-=200 #スコアーマイナス200点
                 gravitys.add(Gravity(400)) #400フレーム
-            if event.type == pg.KEYDOWN and event.key == pg.K_e and score.value >= 20: # 「e」キー押下かつスコアが20以上の場合
+            if event.type == pg.KEYDOWN and event.key == pg.K_e and score.value >= -20: # 「e」キー押下かつスコアが20以上の場合
                 EMP(emys, bombs, screen)
                 score.value -= 20
+            if event.type == pg.KEYDOWN and event.key == pg.K_s and score.value >= -50 and not shields:
+                score.value -= 50
+                shields.add(sheild(bird,400))
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -347,7 +378,17 @@ def main():
             bird.change_img(6, screen)
         
         for bomb in bombs:
-            if bomb.state == "active":
+            if Bird.state == "hyper":
+                for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
+                    if Bird.state == "hyper":
+                        score.value += 1 # 無敵モード時はスコア加算
+                        break
+                    bird.change_img(8, screen)  # こうかとん悲しみエフェクト
+                    score.update(screen)
+                    pg.display.update()
+                    time.sleep(2)
+                    return
+            elif bomb.state == "active":
                 for bomb in pg.sprite.groupcollide(bombs,gravitys, True,False).keys():  # こうかとんと衝突した爆弾リスト（重力）
                     exps.add(Explosion(bomb,50)) # 爆発エフェクト
                     score.value+=1 # 1点アップ
@@ -358,18 +399,14 @@ def main():
                     pg.display.update()
                     time.sleep(2)
                     return
-        
-                for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
-                    if Bird.state == "hyper":
-                        score.value += 1 # 無敵モード時はスコア加算
-                        break
-                    bird.change_img(8, screen)  # こうかとん悲しみエフェクト
-                    score.update(screen)
-                    pg.display.update()
-                    time.sleep(2)
-                    return
+            
 
         bird.update(key_lst, screen, score.value)
+        
+        for bomb in pg.sprite.groupcollide(bombs,shields,True,False).keys():  # 爆弾と衝突した防御壁リスト
+            exps.add(Explosion(bomb,50))
+            
+        # bird.update(key_lst, screen)
         beams.update()
         beams.draw(screen)
         emys.update()
@@ -382,6 +419,8 @@ def main():
         gravitys.update()
         gravitys.draw(screen)
 
+        shields.draw(screen)
+        shields.update()
         pg.display.update()
         tmr += 1
         clock.tick(50)
