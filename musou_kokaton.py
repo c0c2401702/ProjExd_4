@@ -242,6 +242,28 @@ class Score:
         screen.blit(self.image, self.rect)
 
 
+class Gravity(pg.sprite.Sprite):
+    """
+    画面全体を覆う重力場を発生させる
+    発動時間：400フレーム
+    効果：重力球の範囲内の爆弾を打ち落とす
+    発動条件：リターンキー押下　かつ　スコアが２０点以上
+    消費スコア：200
+    """
+    def __init__(self,life:int):
+        super().__init__()
+        self.image= pg.Surface((WIDTH, HEIGHT))
+        self.rect = self.image.get_rect()
+        pg.draw.rect(self.image,(0,0,0),(0,0,WIDTH,HEIGHT))
+        self.image.set_alpha(200)
+        self.life = life
+
+    def update(self):
+        self.life-=1
+        if self.life < 0:
+            self.kill()
+
+
 def main():
     pg.display.set_caption("真！こうかとん無双")
     screen = pg.display.set_mode((WIDTH, HEIGHT))
@@ -253,6 +275,7 @@ def main():
     beams = pg.sprite.Group()
     exps = pg.sprite.Group()
     emys = pg.sprite.Group()
+    gravitys=pg.sprite.Group()
 
     tmr = 0
     clock = pg.time.Clock()
@@ -263,6 +286,9 @@ def main():
                 return 0
             if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
                 beams.add(Beam(bird))
+            if event.type == pg.KEYDOWN and event.key == pg.K_RETURN and score.value>=20: #Enterキーかつ得点が20点以上
+                score.value-=20 #スコアーマイナス20点
+                gravitys.add(Gravity(400)) #400フレーム
         screen.blit(bg_img, [0, 0])
 
         if tmr%200 == 0:  # 200フレームに1回，敵機を出現させる
@@ -282,6 +308,15 @@ def main():
             exps.add(Explosion(bomb, 50))  # 爆発エフェクト
             score.value += 1  # 1点アップ
 
+        for emy in pg.sprite.groupcollide(emys, gravitys, True, False).keys():  # ビームと衝突した敵機リスト（重力）
+            exps.add(Explosion(emy, 100))  # 爆発エフェクト
+            score.value += 10  # 10点アップ
+            bird.change_img(6, screen)
+
+        for bomb in pg.sprite.groupcollide(bombs,gravitys, True,False).keys():  # こうかとんと衝突した爆弾リスト（重力）
+            exps.add(Explosion(bomb,50)) # 爆発エフェクト
+            score.value+=1 # 1点アップ
+        
         for bomb in pg.sprite.spritecollide(bird, bombs, True):  # こうかとんと衝突した爆弾リスト
             bird.change_img(8, screen)  # こうかとん悲しみエフェクト
             score.update(screen)
@@ -299,6 +334,8 @@ def main():
         exps.update()
         exps.draw(screen)
         score.update(screen)
+        gravitys.update()
+        gravitys.draw(screen)
         pg.display.update()
         tmr += 1
         clock.tick(50)
