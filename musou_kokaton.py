@@ -263,6 +263,9 @@ class sheild(pg.sprite.Sprite):
         self.life = life
 
     def update(self):
+        """
+        lifeを1ずつ減らし、0より小さくなったらkillする
+        """
         self.life -= 1
         if self.life < 0:
             self.kill()
@@ -319,7 +322,7 @@ def main():
             time.sleep(2)
             return    
         
-        for bomb in pg.sprite.groupcollide(bombs,shields,True,False).keys():
+        for bomb in pg.sprite.groupcollide(bombs,shields,True,False).keys():  # 爆弾と衝突した防御壁リスト
             exps.add(Explosion(bomb,50))
             
         bird.update(key_lst, screen)
